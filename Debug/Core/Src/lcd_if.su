@@ -1,0 +1,3 @@
+../Core/Src/lcd_if.c:3:6:lcd_idle	16	static
+../Core/Src/lcd_if.c:30:6:lcd_init	24	static
+../Core/Src/lcd_if.c:230:6:lcd_write	24	static

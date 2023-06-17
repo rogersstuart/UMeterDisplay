@@ -42,6 +42,16 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 
+uint8_t skip_next = 0;
+uint8_t last_command = 0;
+uint8_t state_tracker = 0;
+uint8_t skip_data = 0;
+uint8_t col_val = 0;
+uint8_t old_col_val = 0;
+uint8_t ovf = 0;
+uint8_t col_val_ctr = 0;
+uint8_t datalines = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -143,29 +153,7 @@ void SysTick_Handler(void)
 /**
   * @brief This function handles EXTI line 4 to 15 interrupts.
   */
-uint8_t is_init = 0;
-uint8_t skip_next = 0;
-uint8_t halt_next = 0;
-uint8_t col_seen = 0;
-uint8_t last_command = 0;
-uint8_t state_tracker = 0;
-uint8_t skip_data = 0;
 
-uint8_t lcol_flag = 0;
-uint8_t ucol_flag = 0;
-
-uint8_t col_val = 0;
-uint8_t old_col_val = 0;
-uint8_t ovf = 0;
-
-uint8_t col_val_ctr = 0;
-
-uint8_t col_ctr = 0;
-
-uint8_t pgf = 0;
-uint8_t was_data = 0;
-
-uint8_t datalines = 0;
 
 void EXTI4_15_IRQHandler(void)
 {
@@ -174,14 +162,6 @@ void EXTI4_15_IRQHandler(void)
   /* USER CODE END EXTI4_15_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);
   /* USER CODE BEGIN EXTI4_15_IRQn 1 */
-
-
-
-
-  //while(((GPIOA->IDR >> 10) & 1) == 0);
-
-
-
 
 
   uint16_t in_data = GPIOA->IDR;
@@ -194,10 +174,6 @@ void EXTI4_15_IRQHandler(void)
 	  return;
   }
 
-  //if((in_data >> 8) & 1 == 0) //rst
-  //	  return;
-
-
   if(datacmd == 0)
   {
 	  if(skip_data)
@@ -207,59 +183,56 @@ void EXTI4_15_IRQHandler(void)
 	  }
 
 
-	  if((uint8_t)in_data == 0b10000001 || (uint8_t)in_data == 0b10000010 || (uint8_t)in_data == 0b10101000)
+	  if((uint8_t)in_data == 0xD9 || (uint8_t)in_data == 0xDB || (uint8_t)in_data == 0xD5 || (uint8_t)in_data == 0xDC || (uint8_t)in_data == 0xDA || (uint8_t)in_data == 0xD3 || (uint8_t)in_data == 0xA8 || (uint8_t)in_data == 0x81 || (uint8_t)in_data == 0x20)
 	  {
 		  skip_next = 1;
 		  return;
 	  }
 	  else
-		  if(((uint8_t)in_data & 0b11110000) == 0b10110000) //page
+		  if(((uint8_t)in_data & 0b11111000) == 0b10110000) //page
 		  {
-
-
+			  uint16_t temp = in_data;
 		  }
 		  else
 			  if(((uint8_t)in_data & 0b11110000) == 0b00000000) //lower column
 			  {
-				  col_val = (datalines & 0xF); //take the lower nibble
 
-				  	  old_col_val = col_val;
+				  col_val = datalines; //take the lower nibble
+				  col_val &= 0xF;
 
-				  	  if(col_val > 1)
-				  		  ovf = 0;
-				  	  else
-				  		  ovf = 1;
+				  old_col_val = col_val;
 
-				  	  col_val -= 2;
+				  if(col_val > 1)
+					  ovf = 0;
+				  else
+					  ovf = 1;
 
-				  	  col_val &= 0xF; //trim if it overflowed
+				  col_val -= 2;
 
-				  	  datalines = col_val; //set it
+				  col_val &= 0xF; //trim if it overflowed
 
+				  datalines = col_val; //set it
 			  }
 
 			  else
 				  if(((uint8_t)in_data & 0b11110000) == 0b00010000) //upper column (on this system it always comes second)
 				  {
-					  if(col_ctr == 0)
-					  			  col_val = 0;
+					  uint8_t local_col_val = datalines & 0xF; //take the lower nibble
+					  col_val &= 0xF; //clear upper
 
-					  		  uint8_t local_col_val = datalines & 0xF; //take the lower nibble
-					  		  col_val &= 0xF; //clear upper
+					  old_col_val |= local_col_val << 4;
 
-					  		  if(ovf == 1 && local_col_val > 0)
-					  		  {
-					  			  local_col_val -= 1;
-					  			  ovf = 0;
-					  		  }
+					  if(ovf == 1 && local_col_val > 0)
+					  {
+						  local_col_val -= 1;
+						  ovf = 0;
+					  }
 
-					  			  col_val_ctr = 0;
+						  col_val_ctr = 0;
 
-					  		  col_val |= (local_col_val << 4);
+					  col_val |= (local_col_val << 4);
 
-					  		  datalines = 0b00010000 | local_col_val;
-
-
+					  datalines = 0b00010000 | local_col_val;
 				  }
 
 				  else
@@ -268,76 +241,136 @@ void EXTI4_15_IRQHandler(void)
 
 					  }
 					  else
-						  return;
+					  {
+						  uint8_t temp = in_data;
+
+					  }
   }
   else
   {
-
-
 	  if(skip_data)
 	  {
-
-
-
 		  return;
 	  }
 
-  			   else
-  				   //if(ucol_flag)
-  				   //{
-  					   if(ovf && (old_col_val < 2))
-  					   {
-  						  if(col_val_ctr == old_col_val)
-  						  {
-  							  ovf = 0;
-  							col_val_ctr = 0;
-  						  }
-  						  col_val_ctr += 1;
-  						  return;
-  					   }
+	  if(old_col_val++ < 2)
+	  {
+		datacmd = 0;
+		datalines = 0;
 
+		if(datacmd)
+			GPIOB->ODR |= 0x1000;
+		else
+			GPIOB->ODR &= 0b1110111111111111;
+
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+
+		GPIOB->ODR &= 0b1111011111111111;
+
+
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+
+		uint16_t odrbak = GPIOB->ODR;
+		odrbak &= 0xFF00;
+		odrbak |= datalines;
+		GPIOB->ODR = odrbak;
+
+
+		GPIOB->ODR |= 0x800; //wr latch
+
+
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+		asm("NOP");
+
+		return;
+	  }
   }
 
+	if(datacmd)
+		GPIOB->ODR |= 0x1000;
+	else
+		GPIOB->ODR &= 0b1110111111111111;
+
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+
+	GPIOB->ODR &= 0b1111011111111111;
+
+
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+
+	uint16_t odrbak = GPIOB->ODR;
+	odrbak &= 0xFF00;
+	odrbak |= datalines;
+	GPIOB->ODR = odrbak;
+
+
+	GPIOB->ODR |= 0x800; //wr latch
+
+
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
+	asm("NOP");
 
 
 
-  if(datacmd)
-  	  GPIOB->ODR |= 0x1000;
-    else
-  	  GPIOB->ODR &= 0b1110111111111111;
+	//watch for command sequence B0 01 1F and skip data until next command
 
-    GPIOB->ODR &= 0b1111011111111111;
-
-
-  	  uint16_t odrbak = GPIOB->ODR;
-  	  odrbak &= 0xFF00;
-  	  odrbak |= datalines;
-  	  GPIOB->ODR = odrbak;
-
-
-  		  GPIOB->ODR |= 0x800; //wr latch
-
-
-
-  		  //watch for command sequence B0 01 1F and skip data until next command
-
-  		if(datacmd == 0)
-  		  {
-  		  if(last_command == 0xB0)
+	if(datacmd == 0)
+	{
+		if(last_command == 0xB0)
+		{
+			state_tracker = 1;
+		}
+		else
+			if(last_command == 0x1 && ((in_data & 0xFF) == 0x1f) && state_tracker == 1)
 			{
-				state_tracker = 1;
+				skip_data = 1;
+				state_tracker = 0;
 			}
 			else
-				if(last_command == 0x1 && ((in_data & 0xFF) == 0x1f) && state_tracker == 1)
-				{
-					skip_data = 1;
-					state_tracker = 0;
-				}
-				else
-					state_tracker = 0;
+				state_tracker = 0;
 
-			last_command = in_data;
-  		  }
+		last_command = in_data;
+	}
 
 
 

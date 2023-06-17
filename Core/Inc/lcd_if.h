@@ -9,6 +9,10 @@
 #define LCD_WRITE_EN 11
 #define LCD_A0 12
 
+#define LCD_MODE 0
+#define SSD1309_MODE 1
+#define SSD1305_MODE 2
+
 void lcd_idle();
 void lcd_init();
 void lcd_write(uint8_t cmd_dat, uint8_t data);

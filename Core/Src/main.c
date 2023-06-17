@@ -56,7 +56,7 @@ static void MX_TIM1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-uint16_t fade_counter = 1024;
+//uint16_t fade_counter = 1024;
 
 /* USER CODE END 0 */
 
@@ -67,6 +67,10 @@ uint16_t fade_counter = 1024;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+
+	//while(1);
+
+	//TIM1->CCR1 = 1024;
 
   /* USER CODE END 1 */
 
@@ -92,10 +96,17 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 
-  HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
+  //HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
 
-  lcd_init();
-  TIM1->CCR1 = 1024;
+
+
+  HAL_Delay(200);
+  lcdInit();
+
+  //set rd and cs to 1
+  //GPIOB->ODR &= ~(0b0000000100000000);
+  //GPIOB->ODR |= 0b0000010000000000;
+
 
   //HAL_Delay(1000);
 
@@ -109,13 +120,13 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  if(fade_counter > 0)
-	  {
-		  fade_counter -= 1;
-		  TIM1->CCR1 = fade_counter;
-		  HAL_Delay(1);
-	  }
-	  else
+	  //if(fade_counter > 0)
+	  //{
+	//	  fade_counter -= 1;
+		//  TIM1->CCR1 = fade_counter;
+		//  HAL_Delay(1);
+	  //}
+	  //else
 		  HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 
   }
@@ -144,8 +155,8 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV1;
-  RCC_OscInitStruct.PLL.PLLN = 8;
+  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV4;
+  RCC_OscInitStruct.PLL.PLLN = 60;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -261,21 +272,22 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_11
                           |GPIO_PIN_12|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5
-                          |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_RESET);
+                          |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_9, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10|GPIO_PIN_8, GPIO_PIN_SET);
 
   /*Configure GPIO pins : I_D0_Pin I_D1_Pin I_D2_Pin I_D3_Pin
                            I_D4_Pin I_D5_Pin I_D6_Pin I_D7_Pin
-                           I_RES_Pin PA9 PA11 */
+                           PA8 PA9 PA11 */
   GPIO_InitStruct.Pin = I_D0_Pin|I_D1_Pin|I_D2_Pin|I_D3_Pin
                           |I_D4_Pin|I_D5_Pin|I_D6_Pin|I_D7_Pin
-                          |I_RES_Pin|GPIO_PIN_9|GPIO_PIN_11;
+                          |GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_11;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -299,6 +311,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : PA15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_15;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PD0 PD1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI4_15_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
@@ -318,10 +342,10 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
+  //__disable_irq();
+  //while (1)
+  //{
+  //}
   /* USER CODE END Error_Handler_Debug */
 }
 

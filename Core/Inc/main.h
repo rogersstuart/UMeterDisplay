@@ -75,8 +75,6 @@ void Error_Handler(void);
 #define I_D6_GPIO_Port GPIOA
 #define I_D7_Pin GPIO_PIN_7
 #define I_D7_GPIO_Port GPIOA
-#define I_RES_Pin GPIO_PIN_8
-#define I_RES_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
 
 void user_code();

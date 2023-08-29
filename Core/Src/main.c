@@ -101,7 +101,7 @@ int main(void)
 
 
   HAL_Delay(200);
-  lcdInit();
+  displayInit();
 
   //set rd and cs to 1
   //GPIOB->ODR &= ~(0b0000000100000000);

@@ -9,12 +9,17 @@
 #define LCD_WRITE_EN 11
 #define LCD_A0 12
 
-#define LCD_MODE 0
-#define SSD1309_MODE 1
-#define SSD1305_MODE 2
+#define LCD 0
+#define SSD1309 1
+#define SSD1305 2
 
-void lcd_idle();
-void lcd_init();
-void lcd_write(uint8_t cmd_dat, uint8_t data);
+#define DISPLAY_TYPE SSD1309
+
+void displayInit();
+void oledInit();
+void lcdInit();
+void resetDisplay();
+void clearDisplay();
+void displayWrite(uint8_t cmd_dat, uint8_t data);
 
 #endif /* __LCDIF_H */

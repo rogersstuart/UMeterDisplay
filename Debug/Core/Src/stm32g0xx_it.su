@@ -1,7 +1,7 @@
-../Core/Src/stm32g0xx_it.c:95:6:NMI_Handler	0	static
-../Core/Src/stm32g0xx_it.c:110:6:HardFault_Handler	0	static
-../Core/Src/stm32g0xx_it.c:125:6:SVC_Handler	0	static
-../Core/Src/stm32g0xx_it.c:138:6:PendSV_Handler	0	static
-../Core/Src/stm32g0xx_it.c:151:6:SysTick_Handler	8	static
-../Core/Src/stm32g0xx_it.c:174:6:EXTI4_15_IRQHandler	40	static
-../Core/Src/stm32g0xx_it.c:398:6:sleep_some	0	static
+../Core/Src/stm32g0xx_it.c:80:6:NMI_Handler	0	static
+../Core/Src/stm32g0xx_it.c:95:6:HardFault_Handler	0	static
+../Core/Src/stm32g0xx_it.c:110:6:SVC_Handler	0	static
+../Core/Src/stm32g0xx_it.c:123:6:PendSV_Handler	0	static
+../Core/Src/stm32g0xx_it.c:136:6:SysTick_Handler	8	static
+../Core/Src/stm32g0xx_it.c:157:6:EXTI4_15_IRQHandler	40	static,ignoring_inline_asm
+../Core/Src/stm32g0xx_it.c:421:6:sleep_some	0	static,ignoring_inline_asm

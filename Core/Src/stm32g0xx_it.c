@@ -20,6 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32g0xx_it.h"
+#include "lcd_if.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -153,20 +154,25 @@ void SysTick_Handler(void)
 /**
   * @brief This function handles EXTI line 4 to 15 interrupts.
   */
-
-
 void EXTI4_15_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI4_15_IRQn 0 */
 
   /* USER CODE END EXTI4_15_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);
   /* USER CODE BEGIN EXTI4_15_IRQn 1 */
 
-
   uint16_t in_data = GPIOA->IDR;
   uint8_t datacmd = ((in_data >> 11) & 1);
+  uint8_t erd = ((in_data >> 9) & 1);
   datalines = in_data;
+
+  if(!erd)
+  	    {
+  	  	  GPIOB->ODR &= ~(1<<13);
+  	  	  //while(1);
+  	    }
 
   if(skip_next)
   {
@@ -178,17 +184,25 @@ void EXTI4_15_IRQHandler(void)
   {
 	  if(skip_data)
 	  {
+		  //skip data was enabled. this means that the low power readback command occurred.
+		  //set the inputs to their normal state
+		  //set erd to normal
+
+		  GPIOA->PUPDR &= ~0x0000FFFF;
+		  GPIOB->ODR |= (1<<10);
+
+
 		  state_tracker = 0;
 		  skip_data = 0;
 	  }
 
 
-	  if((uint8_t)in_data == 0xD9 || (uint8_t)in_data == 0xDB || (uint8_t)in_data == 0xD5 || (uint8_t)in_data == 0xDC || (uint8_t)in_data == 0xDA || (uint8_t)in_data == 0xD3 || (uint8_t)in_data == 0xA8 || (uint8_t)in_data == 0x81 || (uint8_t)in_data == 0x20)
-	  {
-		  skip_next = 1;
-		  return;
-	  }
-	  else
+	  //if((uint8_t)in_data == 0xD9 || (uint8_t)in_data == 0xDB || (uint8_t)in_data == 0xD5 || (uint8_t)in_data == 0xDC || (uint8_t)in_data == 0xDA || (uint8_t)in_data == 0xD3 || (uint8_t)in_data == 0xA8 || (uint8_t)in_data == 0x81 || (uint8_t)in_data == 0x20)
+	  //{
+		//  skip_next = 1;
+		//  return;
+	  //}
+	  //else
 		  if(((uint8_t)in_data & 0b11111000) == 0b10110000) //page
 		  {
 			  uint16_t temp = in_data;
@@ -197,35 +211,45 @@ void EXTI4_15_IRQHandler(void)
 			  if(((uint8_t)in_data & 0b11110000) == 0b00000000) //lower column
 			  {
 
+
 				  col_val = datalines; //take the lower nibble
 				  col_val &= 0xF;
 
 				  old_col_val = col_val;
 
-				  if(col_val > 1)
-					  ovf = 0;
-				  else
-					  ovf = 1;
+				  //ssd1309
+				  if(DISPLAY_TYPE == SSD1309){
+					  if(col_val > 1)
+						  ovf = 0;
+					  else
+						  ovf = 1;
 
-				  col_val -= 2;
+					  col_val -= 2;
+				  }
+				  //
 
 				  col_val &= 0xF; //trim if it overflowed
 
 				  datalines = col_val; //set it
+
 			  }
 
 			  else
 				  if(((uint8_t)in_data & 0b11110000) == 0b00010000) //upper column (on this system it always comes second)
 				  {
+
 					  uint8_t local_col_val = datalines & 0xF; //take the lower nibble
 					  col_val &= 0xF; //clear upper
 
 					  old_col_val |= local_col_val << 4;
 
-					  if(ovf == 1 && local_col_val > 0)
-					  {
-						  local_col_val -= 1;
-						  ovf = 0;
+					  //ssd1309
+					  if(DISPLAY_TYPE == SSD1309){
+						  if(ovf == 1 && local_col_val > 0)
+						  {
+							  local_col_val -= 1;
+							  ovf = 0;
+						  }
 					  }
 
 						  col_val_ctr = 0;
@@ -233,6 +257,7 @@ void EXTI4_15_IRQHandler(void)
 					  col_val |= (local_col_val << 4);
 
 					  datalines = 0b00010000 | local_col_val;
+
 				  }
 
 				  else
@@ -250,6 +275,18 @@ void EXTI4_15_IRQHandler(void)
   {
 	  if(skip_data)
 	  {
+
+
+
+
+
+		  //if RD# is low and DC is high and skip data is active, write data to meter for read back.
+		  //if(!erd)
+		  //{
+			//  GPIOB->ODR &= ~(1<<10);
+
+		  //}
+
 		  return;
 	  }
 
@@ -259,9 +296,9 @@ void EXTI4_15_IRQHandler(void)
 		datalines = 0;
 
 		if(datacmd)
-			GPIOB->ODR |= 0x1000;
+			GPIOB->ODR |= 1<<12;
 		else
-			GPIOB->ODR &= 0b1110111111111111;
+			GPIOB->ODR &= ~(1<<12);
 
 		asm("NOP");
 		asm("NOP");
@@ -272,7 +309,7 @@ void EXTI4_15_IRQHandler(void)
 		asm("NOP");
 		asm("NOP");
 
-		GPIOB->ODR &= 0b1111011111111111;
+		GPIOB->ODR &= ~(1<<11);
 
 
 		asm("NOP");
@@ -290,7 +327,7 @@ void EXTI4_15_IRQHandler(void)
 		GPIOB->ODR = odrbak;
 
 
-		GPIOB->ODR |= 0x800; //wr latch
+		GPIOB->ODR |= 1<<11; //wr latch
 
 
 		asm("NOP");
@@ -363,6 +400,8 @@ void EXTI4_15_IRQHandler(void)
 		else
 			if(last_command == 0x1 && ((in_data & 0xFF) == 0x1f) && state_tracker == 1)
 			{
+
+
 				skip_data = 1;
 				state_tracker = 0;
 			}

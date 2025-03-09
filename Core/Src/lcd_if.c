@@ -2,17 +2,13 @@
 
 void displayInit(){
 
-
-	//check LCD mode switch
-	uint8_t display_option = SSD1309_MODE;
-
 	resetDisplay();
 
-	switch(display_option)
+	switch(DISPLAY_TYPE)
 	{
-		case SSD1309_MODE:
-		case SSD1305_MODE: oledInit(); break;
-		case LCD_MODE: lcdInit(); break;
+		case SSD1309:
+		case SSD1305: oledInit(); break;
+		case LCD: lcdInit(); break;
 	}
 
 	//common display init commands

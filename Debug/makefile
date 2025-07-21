@@ -84,8 +84,8 @@ all: main-build
 main-build: UMeterLCD.elf secondary-outputs
 
 # Tool invocations
-UMeterLCD.elf UMeterLCD.map: $(OBJS) $(USER_OBJS) W:\Users\Stuart\Documents\GitHub\UMeterLCD\STM32G030C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-g++ -o "UMeterLCD.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"W:\Users\Stuart\Documents\GitHub\UMeterLCD\STM32G030C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="UMeterLCD.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
+UMeterLCD.elf UMeterLCD.map: $(OBJS) $(USER_OBJS) Z:\Users\Stuart\Documents\GitHub\UMeterLCD\STM32G030C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-g++ -o "UMeterLCD.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"Z:\Users\Stuart\Documents\GitHub\UMeterLCD\STM32G030C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="UMeterLCD.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

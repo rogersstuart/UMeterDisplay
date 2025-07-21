@@ -14,7 +14,6 @@
 #define SSD1305 2
 
 #define DISPLAY_TYPE SSD1309
-
 void displayInit();
 void oledInit();
 void lcdInit();

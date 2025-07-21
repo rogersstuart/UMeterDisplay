@@ -37,7 +37,45 @@ void displayInit(){
 
 void oledInit(){
 
-	displayWrite(0, 0xA1); //oled
+	clearDisplay();
+	
+	// Proper SSD1309 initialization sequence
+	displayWrite(0, 0xAE); // Display off
+	displayWrite(0, 0xD5); // Set display clock divide ratio
+	displayWrite(0, 0x80); // Default value
+	displayWrite(0, 0xA8); // Set multiplex ratio
+	displayWrite(0, 0x3F); // 64 MUX
+	displayWrite(0, 0xD3); // Set display offset
+	displayWrite(0, 0x00); // No offset
+	displayWrite(0, 0x40); // Set start line
+	displayWrite(0, 0x8D); // Charge pump
+	displayWrite(0, 0x14); // Enable charge pump
+	displayWrite(0, 0xA1); // Segment remap (reverse direction)
+	displayWrite(0, 0xC0); // Normal COM scan direction
+	displayWrite(0, 0xDA); // COM pins configuration
+	displayWrite(0, 0x12); // Alternative COM pin configuration
+	displayWrite(0, 0x81); // Set contrast
+	displayWrite(0, 0xCF); // High contrast
+	displayWrite(0, 0xD9); // Set pre-charge period
+	displayWrite(0, 0xF1); // Pre-charge: 15 clocks, discharge: 1 clock
+	displayWrite(0, 0xDB); // VCOMH deselect level
+	displayWrite(0, 0x40); // VCOMH level
+	displayWrite(0, 0xA4); // Resume display with RAM content
+	displayWrite(0, 0xA6); // Normal display (not inverted)
+	
+	// CRITICAL: Set horizontal addressing mode explicitly
+	displayWrite(0, 0x20); // Memory addressing mode command
+	displayWrite(0, 0x00); // Horizontal addressing mode
+	
+	// Define the column address range to account for the offset
+	displayWrite(0, 0x21); // Column address range command
+	displayWrite(0, 0x02); // Start from column 2 (to center 128 pixels in 132 columns)
+	displayWrite(0, 0x81); // End at column 129 (2+127)
+	
+	// Define the page address range
+	displayWrite(0, 0x22); // Page address range command  
+	displayWrite(0, 0x00); // Start page 0
+	displayWrite(0, 0x07); // End page 7
 }
 
 void lcdInit(){
@@ -58,7 +96,7 @@ void lcdInit(){
 	displayWrite(0, 0x81);
 
 	//0x20
-	displayWrite(0, 0x10);
+	displayWrite(0, 0x20);
 
 	//0x2C
 	displayWrite(0, 0x2C);
@@ -105,6 +143,23 @@ void lcdInit(){
 			asm("NOP");
 
 			GPIOB->ODR |= ((uint16_t)1 << LCD_WRITE_EN);
+
+			asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
 		}
 	}
 }
@@ -219,6 +274,23 @@ void clearDisplay(){
 			asm("NOP");
 
 			GPIOB->ODR |= ((uint16_t)1 << LCD_WRITE_EN);
+
+			asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
+						asm("NOP");
 		}
 	}
 }
@@ -253,4 +325,21 @@ void displayWrite(uint8_t cmd_dat, uint8_t data)
 	asm("NOP");
 
 	GPIOB->ODR |= ((uint16_t)1 << LCD_WRITE_EN);
+
+	asm("NOP");
+				asm("NOP");
+				asm("NOP");
+				asm("NOP");
+				asm("NOP");
+				asm("NOP");
+				asm("NOP");
+				asm("NOP");
+				asm("NOP");
+				asm("NOP");
+				asm("NOP");
+				asm("NOP");
+				asm("NOP");
+				asm("NOP");
+				asm("NOP");
+				asm("NOP");
 }

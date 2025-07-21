@@ -100,8 +100,9 @@ int main(void)
 
 
 
-  HAL_Delay(200);
+  HAL_Delay(1000);
   displayInit();
+  //
 
   //set rd and cs to 1
   //GPIOB->ODR &= ~(0b0000000100000000);
@@ -122,12 +123,12 @@ int main(void)
 
 	  //if(fade_counter > 0)
 	  //{
-	//	  fade_counter -= 1;
+		//  fade_counter -= 1;
 		//  TIM1->CCR1 = fade_counter;
 		//  HAL_Delay(1);
 	  //}
 	  //else
-		  HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+//HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 
 
 //GPIOB->ODR |= (1<<13);
@@ -282,14 +283,14 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : PA9 */
   GPIO_InitStruct.Pin = GPIO_PIN_9;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;  // CHANGED: No interrupt, just input
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PA10 */
   GPIO_InitStruct.Pin = GPIO_PIN_10;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;  // Keep strobe on rising edge
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PA15 */

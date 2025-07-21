@@ -53,6 +53,30 @@ uint8_t ovf = 0;
 uint8_t col_val_ctr = 0;
 uint8_t datalines = 0;
 
+// New variables for better tracking
+uint8_t current_page = 0;
+uint8_t current_col_low = 0;
+uint8_t current_col_high = 0;
+uint8_t readback_active = 0;
+uint8_t command_state = 0;
+uint8_t data_count = 0;
+uint8_t column_address = 0;
+uint8_t expecting_col_high = 0;
+uint8_t expecting_col_low = 0;
+uint8_t column_set_complete = 0;
+uint8_t readback_page = 0xFF;
+
+// Better readback tracking
+uint8_t last_erd_state = 1;
+uint8_t erd_transition_count = 0;
+uint8_t consecutive_data_bytes = 0;
+uint8_t last_was_command = 1;
+
+// Startup protection and synchronization
+volatile uint8_t display_init_complete = 0;
+volatile uint8_t startup_protection_active = 1;
+volatile uint8_t startup_sync_needed = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -159,259 +183,123 @@ void EXTI4_15_IRQHandler(void)
   /* USER CODE BEGIN EXTI4_15_IRQn 0 */
 
   /* USER CODE END EXTI4_15_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);
+  // HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);  // REMOVED - PA9 no longer generates interrupts
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);    // Only handle PA10 (strobe)
   /* USER CODE BEGIN EXTI4_15_IRQn 1 */
 
   uint16_t in_data = GPIOA->IDR;
   uint8_t datacmd = ((in_data >> 11) & 1);
-  uint8_t erd = ((in_data >> 9) & 1);
-  datalines = in_data;
-
-  if(!erd)
-  	    {
-  	  	  GPIOB->ODR &= ~(1<<13);
-  	  	  //while(1);
-  	    }
-
+  uint8_t erd = ((in_data >> 9) & 1);     // Still read ERD, just don't interrupt on it
+  uint8_t data_byte = in_data & 0xFF;
+  
+  // Skip if we're told to
   if(skip_next)
   {
-	  skip_next = 0;
-	  return;
+      skip_next--;
+      return;
   }
 
-  if(datacmd == 0)
+  // SIMPLIFIED APPROACH: Just skip when ERD is low
+  if(!erd)
   {
-	  if(skip_data)
-	  {
-		  //skip data was enabled. this means that the low power readback command occurred.
-		  //set the inputs to their normal state
-		  //set erd to normal
-
-		  GPIOA->PUPDR &= ~0x0000FFFF;
-		  GPIOB->ODR |= (1<<10);
-
-
-		  state_tracker = 0;
-		  skip_data = 0;
-	  }
-
-
-	  //if((uint8_t)in_data == 0xD9 || (uint8_t)in_data == 0xDB || (uint8_t)in_data == 0xD5 || (uint8_t)in_data == 0xDC || (uint8_t)in_data == 0xDA || (uint8_t)in_data == 0xD3 || (uint8_t)in_data == 0xA8 || (uint8_t)in_data == 0x81 || (uint8_t)in_data == 0x20)
-	  //{
-		//  skip_next = 1;
-		//  return;
-	  //}
-	  //else
-		  if(((uint8_t)in_data & 0b11111000) == 0b10110000) //page
-		  {
-			  uint16_t temp = in_data;
-		  }
-		  else
-			  if(((uint8_t)in_data & 0b11110000) == 0b00000000) //lower column
-			  {
-
-
-				  col_val = datalines; //take the lower nibble
-				  col_val &= 0xF;
-
-				  old_col_val = col_val;
-
-				  //ssd1309
-				  if(DISPLAY_TYPE == SSD1309){
-					  if(col_val > 1)
-						  ovf = 0;
-					  else
-						  ovf = 1;
-
-					  col_val -= 2;
-				  }
-				  //
-
-				  col_val &= 0xF; //trim if it overflowed
-
-				  datalines = col_val; //set it
-
-			  }
-
-			  else
-				  if(((uint8_t)in_data & 0b11110000) == 0b00010000) //upper column (on this system it always comes second)
-				  {
-
-					  uint8_t local_col_val = datalines & 0xF; //take the lower nibble
-					  col_val &= 0xF; //clear upper
-
-					  old_col_val |= local_col_val << 4;
-
-					  //ssd1309
-					  if(DISPLAY_TYPE == SSD1309){
-						  if(ovf == 1 && local_col_val > 0)
-						  {
-							  local_col_val -= 1;
-							  ovf = 0;
-						  }
-					  }
-
-						  col_val_ctr = 0;
-
-					  col_val |= (local_col_val << 4);
-
-					  datalines = 0b00010000 | local_col_val;
-
-				  }
-
-				  else
-					  if(((uint8_t)in_data & 0b11000000) == 0b01000000)
-					  {
-
-					  }
-					  else
-					  {
-						  uint8_t temp = in_data;
-
-					  }
+      return; // Skip all processing during readback
   }
+
+  // For SSD1309 in horizontal mode, we need to handle column wrapping
+  if(datacmd == 0)  // Command mode
+  {
+      // Check for column address commands that might cause rolling
+      if((data_byte & 0xF0) == 0x00)  // Column low nibble (0x00-0x0F)
+      {
+          // Check if this is part of a problematic sequence
+          if(data_byte < 0x02)  // Columns 0 or 1 might cause rolling
+          {
+              data_byte = 0x02;  // Force minimum column to 2
+          }
+      }
+      else if((data_byte & 0xF0) == 0x10)  // Column high nibble (0x10-0x1F)
+      {
+          // Leave high nibble unchanged
+      }
+      else if((data_byte & 0xF8) == 0xB0)  // Page command
+      {
+          // Page commands are OK
+      }
+      else if(data_byte == 0x21)  // Column address range command
+      {
+          // This command sets column range - might be causing issues
+          // Skip this command and its parameters
+          skip_next = 2;  // Skip next 2 bytes (start and end column)
+          return;
+      }
+      else if(data_byte == 0x22)  // Page address range command
+      {
+          // Skip this command and its parameters
+          skip_next = 2;  // Skip next 2 bytes (start and end page)
+          return;
+      }
+      
+      datalines = data_byte;
+  }
+  else  // Data mode
+  {
+      datalines = data_byte;
+  }
+
+  // Output section - write to display
+  if(datacmd)
+      GPIOB->ODR |= (1 << LCD_A0);
   else
-  {
-	  if(skip_data)
-	  {
+      GPIOB->ODR &= ~(1 << LCD_A0);
 
+  // Add small delay for setup time
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
 
+  GPIOB->ODR &= ~(1 << LCD_WRITE_EN);
 
+  // More setup time
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
 
+  uint16_t odrbak = GPIOB->ODR;
+  odrbak &= 0xFF00;
+  odrbak |= datalines;
+  GPIOB->ODR = odrbak;
 
-		  //if RD# is low and DC is high and skip data is active, write data to meter for read back.
-		  //if(!erd)
-		  //{
-			//  GPIOB->ODR &= ~(1<<10);
+  // Hold time before latch
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
 
-		  //}
+  GPIOB->ODR |= (1 << LCD_WRITE_EN);  // Latch data
 
-		  return;
-	  }
-
-	  if(old_col_val++ < 2)
-	  {
-		datacmd = 0;
-		datalines = 0;
-
-		if(datacmd)
-			GPIOB->ODR |= 1<<12;
-		else
-			GPIOB->ODR &= ~(1<<12);
-
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-
-		GPIOB->ODR &= ~(1<<11);
-
-
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-
-		uint16_t odrbak = GPIOB->ODR;
-		odrbak &= 0xFF00;
-		odrbak |= datalines;
-		GPIOB->ODR = odrbak;
-
-
-		GPIOB->ODR |= 1<<11; //wr latch
-
-
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-		asm("NOP");
-
-		return;
-	  }
-  }
-
-	if(datacmd)
-		GPIOB->ODR |= 0x1000;
-	else
-		GPIOB->ODR &= 0b1110111111111111;
-
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-
-	GPIOB->ODR &= 0b1111011111111111;
-
-
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-
-	uint16_t odrbak = GPIOB->ODR;
-	odrbak &= 0xFF00;
-	odrbak |= datalines;
-	GPIOB->ODR = odrbak;
-
-
-	GPIOB->ODR |= 0x800; //wr latch
-
-
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-
-
-
-	//watch for command sequence B0 01 1F and skip data until next command
-
-	if(datacmd == 0)
-	{
-		if(last_command == 0xB0)
-		{
-			state_tracker = 1;
-		}
-		else
-			if(last_command == 0x1 && ((in_data & 0xFF) == 0x1f) && state_tracker == 1)
-			{
-
-
-				skip_data = 1;
-				state_tracker = 0;
-			}
-			else
-				state_tracker = 0;
-
-		last_command = in_data;
-	}
-
-
+  // Hold time after latch
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
+  asm("NOP");
 
   /* USER CODE END EXTI4_15_IRQn 1 */
 }

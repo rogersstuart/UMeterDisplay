@@ -1,7 +1,7 @@
-../Core/Src/lcd_if.c:298:6:displayWrite.constprop	1
-../Core/Src/lcd_if.c:81:6:lcdInit	3
-../Core/Src/lcd_if.c:167:6:resetDisplay	1
-../Core/Src/lcd_if.c:240:6:clearDisplay	3
-../Core/Src/lcd_if.c:38:6:oledInit	1
+../Core/Src/lcd_if.c:302:6:displayWrite.constprop	1
+../Core/Src/lcd_if.c:85:6:lcdInit	3
+../Core/Src/lcd_if.c:171:6:resetDisplay	1
+../Core/Src/lcd_if.c:244:6:clearDisplay	3
+../Core/Src/lcd_if.c:42:6:oledInit	1
 ../Core/Src/lcd_if.c:3:6:displayInit	3
-../Core/Src/lcd_if.c:298:6:displayWrite	2
+../Core/Src/lcd_if.c:302:6:displayWrite	2

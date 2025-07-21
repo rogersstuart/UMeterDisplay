@@ -23,6 +23,10 @@ void displayInit(){
 
 	displayWrite(0,0xAF); //display on
 
+	// Mark initialization as complete
+	extern volatile uint8_t display_init_complete;
+	display_init_complete = 1;
+
 	//if pd0 low halt
 	if((GPIOD->IDR & 1) == 0)
 	{

@@ -100,7 +100,7 @@ int main(void)
 
 
 
-  HAL_Delay(1000);
+  //HAL_Delay(1000);
   displayInit();
   //
 
@@ -128,7 +128,7 @@ int main(void)
 		//  HAL_Delay(1);
 	  //}
 	  //else
-//HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 
 
 //GPIOB->ODR |= (1<<13);

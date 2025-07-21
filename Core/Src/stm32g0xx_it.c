@@ -208,7 +208,10 @@ void EXTI4_15_IRQHandler(void)
   // For SSD1309 in horizontal mode, we need to handle column wrapping
   if(datacmd == 0)  // Command mode
   {
-      // Check for column address commands that might cause rolling
+      // Filter out ALL initialization/configuration commands
+      // Only allow addressing commands through
+      
+      // ALLOW: Column address commands
       if((data_byte & 0xF0) == 0x00)  // Column low nibble (0x00-0x0F)
       {
           // Check if this is part of a problematic sequence
@@ -216,30 +219,108 @@ void EXTI4_15_IRQHandler(void)
           {
               data_byte = 0x02;  // Force minimum column to 2
           }
+          datalines = data_byte;
       }
       else if((data_byte & 0xF0) == 0x10)  // Column high nibble (0x10-0x1F)
       {
-          // Leave high nibble unchanged
+          // Column high nibble - allow it
+          datalines = data_byte;
       }
-      else if((data_byte & 0xF8) == 0xB0)  // Page command
+      else if((data_byte & 0xF8) == 0xB0)  // Page command (0xB0-0xB7)
       {
-          // Page commands are OK
+          // Page commands are addressing commands - allow them
+          datalines = data_byte;
       }
-      else if(data_byte == 0x21)  // Column address range command
+      // BLOCK: All other commands are initialization/configuration
+      else if(data_byte == 0x20)  // Memory addressing mode
       {
-          // This command sets column range - might be causing issues
-          // Skip this command and its parameters
-          skip_next = 2;  // Skip next 2 bytes (start and end column)
-          return;
+          skip_next = 1;  // Skip the parameter
+          return;  // IMPORTANT: Return here to avoid output
       }
-      else if(data_byte == 0x22)  // Page address range command
+      else if(data_byte == 0x21)  // Column address range
       {
-          // Skip this command and its parameters
-          skip_next = 2;  // Skip next 2 bytes (start and end page)
-          return;
+          skip_next = 2;  // Skip both parameters
+          return;  // IMPORTANT: Return here to avoid output
       }
-      
-      datalines = data_byte;
+      else if(data_byte == 0x22)  // Page address range
+      {
+          skip_next = 2;  // Skip both parameters
+          return;  // IMPORTANT: Return here to avoid output
+      }
+      else if((data_byte & 0xC0) == 0x40)  // Display start line (0x40-0x7F)
+      {
+          return;  // Block start line commands
+      }
+      else if(data_byte == 0x81)  // Contrast control
+      {
+          skip_next = 1;  // Skip the contrast value
+          return;  // IMPORTANT: Return here to avoid output
+      }
+      else if(data_byte == 0x8D)  // Charge pump
+      {
+          skip_next = 1;  // Skip the parameter
+          return;  // IMPORTANT: Return here to avoid output
+      }
+      else if(data_byte == 0xA0 || data_byte == 0xA1)  // Segment remap
+      {
+          return;  // Block segment remap
+      }
+      else if(data_byte == 0xA4 || data_byte == 0xA5)  // Display all on/resume
+      {
+          return;  // Block these
+      }
+      else if(data_byte == 0xA6 || data_byte == 0xA7)  // Normal/inverse display
+      {
+          return;  // Block display mode changes
+      }
+      else if(data_byte == 0xA8)  // Multiplex ratio
+      {
+          skip_next = 1;  // Skip the parameter
+          return;  // IMPORTANT: Return here to avoid output
+      }
+      else if(data_byte == 0xAE || data_byte == 0xAF)  // Display on/off
+      {
+          return;  // Block display on/off commands
+      }
+      else if(data_byte == 0xC0 || data_byte == 0xC8)  // COM scan direction
+      {
+          return;  // Block COM scan changes
+      }
+      else if(data_byte == 0xD3)  // Display offset
+      {
+          skip_next = 1;  // Skip the offset value
+          return;  // IMPORTANT: Return here to avoid output
+      }
+      else if(data_byte == 0xD5)  // Display clock divide
+      {
+          skip_next = 1;  // Skip the parameter
+          return;  // IMPORTANT: Return here to avoid output
+      }
+      else if(data_byte == 0xD9)  // Pre-charge period
+      {
+          skip_next = 1;  // Skip the parameter
+          return;  // IMPORTANT: Return here to avoid output
+      }
+      else if(data_byte == 0xDA)  // COM pins configuration
+      {
+          skip_next = 1;  // Skip the parameter
+          return;  // IMPORTANT: Return here to avoid output
+      }
+      else if(data_byte == 0xDB)  // VCOMH deselect level
+      {
+          skip_next = 1;  // Skip the parameter
+          return;  // IMPORTANT: Return here to avoid output
+      }
+      else if(data_byte == 0xE3)  // NOP command
+      {
+          return;  // Block NOP
+      }
+      else
+      {
+          // Unknown command - might be safe to pass through
+          // but for maximum safety, block it
+          return;  // IMPORTANT: Return here to avoid output
+      }
   }
   else  // Data mode
   {

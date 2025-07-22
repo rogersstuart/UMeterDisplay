@@ -1,8 +1,8 @@
-# UMeterLCD - STM32G0 LCD/OLED Display Interface Controller
+# UMeterDisplay - STM32G0 OLED or LCD Display Interface Controller
 
 ## Overview
 
-**UMeterLCD** is an embedded firmware project for STM32G030C8T microcontrollers that provides an intelligent LCD/OLED display interface controller. The system acts as a bridge between a host device and LCD/OLED displays, with built-in command filtering, power management, and interrupt-driven communication.
+**UMeterLCD** is an embedded firmware project for STM32G030C8T microcontrollers that provides an intelligent OLED or LCD display interface controller. The system acts as a bridge between a host device and OLED or LCD displays, with built-in command filtering, power management, and interrupt-driven communication.
 
 ---
 
@@ -46,12 +46,12 @@
 | PA9      | ERD (Enable Read) signal input       |
 | PA10     | Strobe signal input (interrupt)      |
 | PA11     | Command/Data control input           |
-| PB0-PB7  | Output data bus to LCD/OLED          |
-| PB8      | LCD CS (Chip Select)                 |
-| PB9      | LCD RST (Reset)                      |
-| PB10     | LCD READ_EN (Read Enable)            |
-| PB11     | LCD WRITE_EN (Write Enable)          |
-| PB12     | LCD A0 (Command/Data select)         |
+| PB0-PB7  | Output data bus to OLED LCD          |
+| PB8      | Display CS (Chip Select)                 |
+| PB9      | Display RST (Reset)                      |
+| PB10     | Display READ_EN (Read Enable)            |
+| PB11     | Display WRITE_EN (Write Enable)          |
+| PB12     | Display A0 (Command/Data select)         |
 | PB13     | Status/Debug output                  |
 | PD0-PD1  | Configuration jumpers                |
 
@@ -80,7 +80,7 @@ The firmware supports three display configurations via compile-time selection:
 - Wakes on strobe interrupt (PA10 rising edge)  
 - Processes incoming commands and data from host  
 - Filters out initialization commands to prevent display corruption  
-- Forwards allowed addressing commands and display data to LCD/OLED  
+- Forwards allowed addressing commands and display data to OLED or LCD  
 
 ### Configuration Modes
 
@@ -138,12 +138,12 @@ This project is designed for **STM32CubeIDE** or a compatible **ARM GCC toolchai
 ```
 Core/
 ├── Inc/
-│   ├── lcd_if.h                # LCD interface definitions and configuration
+│   ├── lcd_if.h                # OLED or LCD interface definitions and configuration
 │   ├── main.h                  # Main application header
 │   ├── stm32g0xx_hal_conf.h    # HAL configuration
 │   └── stm32g0xx_it.h          # Interrupt handler declarations
 ├── Src/
-│   ├── lcd_if.c                # LCD/OLED interface implementation
+│   ├── lcd_if.c                # OLED or LCD interface implementation
 │   ├── main.c                  # Main application and system initialization
 │   ├── stm32g0xx_it.c          # Interrupt service routines
 │   ├── stm32g0xx_hal_msp.c     # HAL MSP functions

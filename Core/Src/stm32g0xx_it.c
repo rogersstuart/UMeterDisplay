@@ -3,6 +3,12 @@
   ******************************************************************************
   * @file    stm32g0xx_it.c
   * @brief   Interrupt Service Routines.
+  * 
+  * @details This file handles all interrupt routines for the STM32G0xx microcontroller,
+  *			 with special focus on LCD communication handling via external interrupts.
+  * 
+  * @date    July 21, 2025
+  * @author  Stuart
   ******************************************************************************
   * @attention
   *
@@ -43,39 +49,44 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 
-uint8_t skip_next = 0;
-uint8_t last_command = 0;
-uint8_t state_tracker = 0;
-uint8_t skip_data = 0;
-uint8_t col_val = 0;
-uint8_t old_col_val = 0;
-uint8_t ovf = 0;
-uint8_t col_val_ctr = 0;
-uint8_t datalines = 0;
+// Command processing control flags
+uint8_t skip_next = 0;           // Number of bytes to skip processing
+uint8_t last_command = 0;        // Last command received
+uint8_t state_tracker = 0;       // General state tracking
+uint8_t skip_data = 0;           // Flag to skip data processing
 
-// New variables for better tracking
-uint8_t current_page = 0;
-uint8_t current_col_low = 0;
-uint8_t current_col_high = 0;
-uint8_t readback_active = 0;
-uint8_t command_state = 0;
-uint8_t data_count = 0;
-uint8_t column_address = 0;
-uint8_t expecting_col_high = 0;
-uint8_t expecting_col_low = 0;
-uint8_t column_set_complete = 0;
-uint8_t readback_page = 0xFF;
+// Column tracking
+uint8_t col_val = 0;             // Current column value
+uint8_t old_col_val = 0;         // Previous column value
+uint8_t ovf = 0;                 // Overflow flag
+uint8_t col_val_ctr = 0;         // Column value counter
+uint8_t datalines = 0;           // Data lines value for output
 
-// Better readback tracking
-uint8_t last_erd_state = 1;
-uint8_t erd_transition_count = 0;
-uint8_t consecutive_data_bytes = 0;
-uint8_t last_was_command = 1;
+// Addressing tracking
+uint8_t current_page = 0;        // Current page address
+uint8_t current_col_low = 0;     // Low nibble of column address
+uint8_t current_col_high = 0;    // High nibble of column address
+uint8_t column_address = 0;      // Complete column address
+uint8_t column_set_complete = 0; // Flag indicating column address is fully set
 
-// Startup protection and synchronization
-volatile uint8_t display_init_complete = 0;
-volatile uint8_t startup_protection_active = 1;
-volatile uint8_t startup_sync_needed = 0;
+// Command sequence tracking
+uint8_t expecting_col_high = 0;  // Flag for expecting high column address byte
+uint8_t expecting_col_low = 0;   // Flag for expecting low column address byte
+uint8_t command_state = 0;       // Current command state
+uint8_t data_count = 0;          // Counter for consecutive data bytes
+
+// Readback control
+uint8_t readback_active = 0;     // Flag indicating readback operation in progress
+uint8_t readback_page = 0xFF;    // Page address for readback
+uint8_t last_erd_state = 1;      // Previous ERD signal state
+uint8_t erd_transition_count = 0;// Counter for ERD signal transitions
+uint8_t consecutive_data_bytes = 0; // Counter for consecutive data bytes
+uint8_t last_was_command = 1;    // Flag indicating previous byte was a command
+
+// Initialization and synchronization
+volatile uint8_t display_init_complete = 0;      // Flag indicating display initialization complete
+volatile uint8_t startup_protection_active = 1;  // Flag for startup protection
+volatile uint8_t startup_sync_needed = 0;        // Flag indicating sync needed after startup
 
 /* USER CODE END PV */
 
@@ -177,6 +188,12 @@ void SysTick_Handler(void)
 
 /**
   * @brief This function handles EXTI line 4 to 15 interrupts.
+  * 
+  * This handler processes LCD display communication by:
+  * 1. Capturing data on GPIO pins when strobe occurs
+  * 2. Filtering out initialization/configuration commands
+  * 3. Processing addressing commands and data bytes
+  * 4. Sending allowed commands and data to the LCD
   */
 void EXTI4_15_IRQHandler(void)
 {
@@ -187,214 +204,213 @@ void EXTI4_15_IRQHandler(void)
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);    // Only handle PA10 (strobe)
   /* USER CODE BEGIN EXTI4_15_IRQn 1 */
 
+  // Read current GPIO state
   uint16_t in_data = GPIOA->IDR;
-  uint8_t datacmd = ((in_data >> 11) & 1);
-  uint8_t erd = ((in_data >> 9) & 1);     // Still read ERD, just don't interrupt on it
-  uint8_t data_byte = in_data & 0xFF;
+  uint8_t datacmd = ((in_data >> 11) & 1);  // 0 = command, 1 = data
+  uint8_t erd = ((in_data >> 9) & 1);       // Enable Read signal (active low)
+  uint8_t data_byte = in_data & 0xFF;       // Data byte on PA0-PA7
   
-  // Skip if we're told to
+  // Skip processing if in skip mode (used for multi-byte commands)
   if(skip_next)
   {
       skip_next--;
       return;
   }
 
-  // SIMPLIFIED APPROACH: Just skip when ERD is low
+  // Skip all processing during readback operations (when ERD is low)
   if(!erd)
   {
-      return; // Skip all processing during readback
+      return;
   }
 
-  // For SSD1309 in horizontal mode, we need to handle column wrapping
+  // Process incoming data based on mode (command vs data)
   if(datacmd == 0)  // Command mode
   {
-      // Filter out ALL initialization/configuration commands
-      // Only allow addressing commands through
+      // Filter commands - only allow addressing commands through
+      // Block all initialization/configuration commands
       
-      // ALLOW: Column address commands
-      if((data_byte & 0xF0) == 0x00)  // Column low nibble (0x00-0x0F)
+      // Column address low nibble (0x00-0x0F)
+      if((data_byte & 0xF0) == 0x00)
       {
-          // Check if this is part of a problematic sequence
-          if(data_byte < 0x02)  // Columns 0 or 1 might cause rolling
+          // Prevent columns 0-1 which might cause display rolling issues
+          if(data_byte < 0x02)
           {
               data_byte = 0x02;  // Force minimum column to 2
           }
           datalines = data_byte;
       }
-      else if((data_byte & 0xF0) == 0x10)  // Column high nibble (0x10-0x1F)
+      // Column address high nibble (0x10-0x1F)
+      else if((data_byte & 0xF0) == 0x10)
       {
-          // Column high nibble - allow it
           datalines = data_byte;
       }
-      else if((data_byte & 0xF8) == 0xB0)  // Page command (0xB0-0xB7)
+      // Page address command (0xB0-0xB7)
+      else if((data_byte & 0xF8) == 0xB0)
       {
-          // Page commands are addressing commands - allow them
           datalines = data_byte;
       }
-      // BLOCK: All other commands are initialization/configuration
-      else if(data_byte == 0x20)  // Memory addressing mode
+      // Memory addressing mode - block and skip parameter
+      else if(data_byte == 0x20)
       {
-          skip_next = 1;  // Skip the parameter
-          return;  // IMPORTANT: Return here to avoid output
+          skip_next = 1;
+          return;
       }
-      else if(data_byte == 0x21)  // Column address range
+      // Column address range - block and skip both parameters
+      else if(data_byte == 0x21)
       {
-          skip_next = 2;  // Skip both parameters
-          return;  // IMPORTANT: Return here to avoid output
+          skip_next = 2;
+          return;
       }
-      else if(data_byte == 0x22)  // Page address range
+      // Page address range - block and skip both parameters
+      else if(data_byte == 0x22)
       {
-          skip_next = 2;  // Skip both parameters
-          return;  // IMPORTANT: Return here to avoid output
+          skip_next = 2;
+          return;
       }
-      else if((data_byte & 0xC0) == 0x40)  // Display start line (0x40-0x7F)
+      // Display start line (0x40-0x7F) - block
+      else if((data_byte & 0xC0) == 0x40)
       {
-          return;  // Block start line commands
+          return;
       }
-      else if(data_byte == 0x81)  // Contrast control
+      // Contrast control - block and skip parameter
+      else if(data_byte == 0x81)
       {
-          skip_next = 1;  // Skip the contrast value
-          return;  // IMPORTANT: Return here to avoid output
+          skip_next = 1;
+          return;
       }
-      else if(data_byte == 0x8D)  // Charge pump
+      // Charge pump setting - block and skip parameter
+      else if(data_byte == 0x8D)
       {
-          skip_next = 1;  // Skip the parameter
-          return;  // IMPORTANT: Return here to avoid output
+          skip_next = 1;
+          return;
       }
-      else if(data_byte == 0xA0 || data_byte == 0xA1)  // Segment remap
+      // Segment remap commands - block
+      else if(data_byte == 0xA0 || data_byte == 0xA1)
       {
-          return;  // Block segment remap
+          return;
       }
-      else if(data_byte == 0xA4 || data_byte == 0xA5)  // Display all on/resume
+      // Display all on/resume - block
+      else if(data_byte == 0xA4 || data_byte == 0xA5)
       {
-          return;  // Block these
+          return;
       }
-      else if(data_byte == 0xA6 || data_byte == 0xA7)  // Normal/inverse display
+      // Normal/inverse display mode - block
+      else if(data_byte == 0xA6 || data_byte == 0xA7)
       {
-          return;  // Block display mode changes
+          return;
       }
-      else if(data_byte == 0xA8)  // Multiplex ratio
+      // Multiplex ratio - block and skip parameter
+      else if(data_byte == 0xA8)
       {
-          skip_next = 1;  // Skip the parameter
-          return;  // IMPORTANT: Return here to avoid output
+          skip_next = 1;
+          return;
       }
-      else if(data_byte == 0xAE || data_byte == 0xAF)  // Display on/off
+      // Display on/off commands - block
+      else if(data_byte == 0xAE || data_byte == 0xAF)
       {
-          return;  // Block display on/off commands
+          return;
       }
-      else if(data_byte == 0xC0 || data_byte == 0xC8)  // COM scan direction
+      // COM scan direction - block
+      else if(data_byte == 0xC0 || data_byte == 0xC8)
       {
-          return;  // Block COM scan changes
+          return;
       }
-      else if(data_byte == 0xD3)  // Display offset
+      // Display offset - block and skip parameter
+      else if(data_byte == 0xD3)
       {
-          skip_next = 1;  // Skip the offset value
-          return;  // IMPORTANT: Return here to avoid output
+          skip_next = 1;
+          return;
       }
-      else if(data_byte == 0xD5)  // Display clock divide
+      // Display clock divide - block and skip parameter
+      else if(data_byte == 0xD5)
       {
-          skip_next = 1;  // Skip the parameter
-          return;  // IMPORTANT: Return here to avoid output
+          skip_next = 1;
+          return;
       }
-      else if(data_byte == 0xD9)  // Pre-charge period
+      // Pre-charge period - block and skip parameter
+      else if(data_byte == 0xD9)
       {
-          skip_next = 1;  // Skip the parameter
-          return;  // IMPORTANT: Return here to avoid output
+          skip_next = 1;
+          return;
       }
-      else if(data_byte == 0xDA)  // COM pins configuration
+      // COM pins configuration - block and skip parameter
+      else if(data_byte == 0xDA)
       {
-          skip_next = 1;  // Skip the parameter
-          return;  // IMPORTANT: Return here to avoid output
+          skip_next = 1;
+          return;
       }
-      else if(data_byte == 0xDB)  // VCOMH deselect level
+      // VCOMH deselect level - block and skip parameter
+      else if(data_byte == 0xDB)
       {
-          skip_next = 1;  // Skip the parameter
-          return;  // IMPORTANT: Return here to avoid output
+          skip_next = 1;
+          return;
       }
-      else if(data_byte == 0xE3)  // NOP command
+      // NOP command - block
+      else if(data_byte == 0xE3)
       {
-          return;  // Block NOP
+          return;
       }
+      // Unknown/unsupported command - block for safety
       else
       {
-          // Unknown command - might be safe to pass through
-          // but for maximum safety, block it
-          return;  // IMPORTANT: Return here to avoid output
+          return;
       }
   }
-  else  // Data mode
+  else  // Data mode - pass through all data bytes
   {
       datalines = data_byte;
   }
 
-  // Output section - write to display
+  // Send allowed data/commands to display
+  
+  // Set A0 line based on data/command mode
   if(datacmd)
-      GPIOB->ODR |= (1 << LCD_A0);
+      GPIOB->ODR |= (1 << LCD_A0);     // Data mode
   else
-      GPIOB->ODR &= ~(1 << LCD_A0);
+      GPIOB->ODR &= ~(1 << LCD_A0);    // Command mode
 
-  // Add small delay for setup time
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
+  // Setup time delay
+  asm("NOP"); asm("NOP"); asm("NOP"); asm("NOP");
 
+  // Begin write cycle (active low)
   GPIOB->ODR &= ~(1 << LCD_WRITE_EN);
 
-  // More setup time
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
+  // Additional setup time
+  asm("NOP"); asm("NOP"); asm("NOP"); asm("NOP");
 
+  // Set data lines (PB0-PB7)
   uint16_t odrbak = GPIOB->ODR;
-  odrbak &= 0xFF00;
-  odrbak |= datalines;
+  odrbak &= 0xFF00;                    // Clear data bits
+  odrbak |= datalines;                 // Set new data bits
   GPIOB->ODR = odrbak;
 
   // Hold time before latch
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
+  asm("NOP"); asm("NOP"); asm("NOP"); asm("NOP");
+  asm("NOP"); asm("NOP"); asm("NOP"); asm("NOP");
 
-  GPIOB->ODR |= (1 << LCD_WRITE_EN);  // Latch data
+  // End write cycle (latch data)
+  GPIOB->ODR |= (1 << LCD_WRITE_EN);
 
   // Hold time after latch
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
-  asm("NOP");
+  asm("NOP"); asm("NOP"); asm("NOP"); asm("NOP");
+  asm("NOP"); asm("NOP"); asm("NOP"); asm("NOP");
+  asm("NOP"); asm("NOP"); asm("NOP"); asm("NOP");
+  asm("NOP"); asm("NOP"); asm("NOP"); asm("NOP");
 
   /* USER CODE END EXTI4_15_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
 
-void sleep_some()
+/**
+ * @brief Small delay function using NOP instructions
+ * 
+ * Provides a short, deterministic delay for timing-critical operations
+ */
+void sleep_some(void)
 {
-
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-	asm("NOP");
-
+    asm("NOP"); asm("NOP");
+    asm("NOP"); asm("NOP");
 }
 
 /* USER CODE END 1 */

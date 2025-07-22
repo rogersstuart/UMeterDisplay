@@ -1,8 +1,13 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
+  * @file           main.c
+  * @brief          Main program body for LCD interface controller
+  * @details        Controls an LCD display via GPIO and interrupt-driven
+  *                 communication protocol
+  * 
+  * @date    July 21, 2025
+  * @author  Stuart
   ******************************************************************************
   * @attention
   *
@@ -42,6 +47,11 @@
 TIM_HandleTypeDef htim1;
 
 /* USER CODE BEGIN PV */
+/* 
+ * Timer used for PWM generation and timing control
+ * Currently unused but kept for potential future features
+ */
+//uint16_t fade_counter = 1024;
 
 /* USER CODE END PV */
 
@@ -56,8 +66,6 @@ static void MX_TIM1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-//uint16_t fade_counter = 1024;
-
 /* USER CODE END 0 */
 
 /**
@@ -67,10 +75,12 @@ static void MX_TIM1_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
-	//while(1);
-
-	//TIM1->CCR1 = 1024;
+  /* Initial setup before system configuration */
+  
+  /* Disabled code preserved for reference:
+  //while(1);
+  //TIM1->CCR1 = 1024;
+  */
 
   /* USER CODE END 1 */
 
@@ -95,31 +105,19 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
-<<<<<<< Updated upstream
-
-  //HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
-
-
-
-  HAL_Delay(200);
-=======
   /* Initialize the LCD display
    * This function is defined elsewhere and configures the display
    * for proper operation with the interrupt handler
    */
   HAL_Delay(250);
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
   displayInit();
 
-  //set rd and cs to 1
+  /* Disabled PWM functionality preserved for reference:
+  //HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
+  //HAL_Delay(1000);
   //GPIOB->ODR &= ~(0b0000000100000000);
   //GPIOB->ODR |= 0b0000010000000000;
-
-
-  //HAL_Delay(1000);
+  */
 
   /* USER CODE END 2 */
 
@@ -130,25 +128,33 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    
+    /* Enter sleep mode to save power
+     * The system will wake up when an interrupt occurs
+     * All LCD communication is handled by the interrupt handler
+     */
+    HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 
-	  //if(fade_counter > 0)
-	  //{
-	//	  fade_counter -= 1;
-		//  TIM1->CCR1 = fade_counter;
-		//  HAL_Delay(1);
-	  //}
-	  //else
-		  HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+    /* Disabled PWM fade effect preserved for reference:
+    //if(fade_counter > 0)
+    //{
+    //  fade_counter -= 1;
+    //  TIM1->CCR1 = fade_counter;
+    //  HAL_Delay(1);
+    //}
+    */
 
-
-//GPIOB->ODR |= (1<<13);
-
+    /* Debug signal toggle (currently disabled)
+    //GPIOB->ODR |= (1<<13);
+    */
   }
   /* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
+  * @brief  System Clock Configuration
+  * @note   Configures HSI clock with PLL for maximum performance
+  * @param  None
   * @retval None
   */
 void SystemClock_Config(void)
@@ -193,13 +199,13 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief TIM1 Initialization Function
-  * @param None
+  * @brief  TIM1 Initialization Function
+  * @note   Configures Timer1 for potential PWM usage
+  * @param  None
   * @retval None
   */
 static void MX_TIM1_Init(void)
 {
-
   /* USER CODE BEGIN TIM1_Init 0 */
 
   /* USER CODE END TIM1_Init 0 */
@@ -236,12 +242,12 @@ static void MX_TIM1_Init(void)
   /* USER CODE BEGIN TIM1_Init 2 */
 
   /* USER CODE END TIM1_Init 2 */
-
 }
 
 /**
-  * @brief GPIO Initialization Function
-  * @param None
+  * @brief  GPIO Initialization Function
+  * @note   Configures all GPIO pins needed for LCD interface
+  * @param  None
   * @retval None
   */
 static void MX_GPIO_Init(void)
@@ -249,21 +255,20 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();  /* Port A for input data and control signals */
+  __HAL_RCC_GPIOB_CLK_ENABLE();  /* Port B for output data and control signals */
+  __HAL_RCC_GPIOD_CLK_ENABLE();  /* Port D for additional inputs */
 
-  /*Configure GPIO pin Output Level */
+  /* Configure GPIO output levels */
+  /* Data pins and most control pins default to LOW */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_11
                           |GPIO_PIN_12|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5
                           |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_9, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
+  /* Control pins that need to start HIGH */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10|GPIO_PIN_13|GPIO_PIN_8, GPIO_PIN_SET);
 
-  /*Configure GPIO pins : I_D0_Pin I_D1_Pin I_D2_Pin I_D3_Pin
-                           I_D4_Pin I_D5_Pin I_D6_Pin I_D7_Pin
-                           PA8 PA11 */
+  /* Configure input pins for LCD data bus (PA0-PA7) and control signals */
   GPIO_InitStruct.Pin = I_D0_Pin|I_D1_Pin|I_D2_Pin|I_D3_Pin
                           |I_D4_Pin|I_D5_Pin|I_D6_Pin|I_D7_Pin
                           |GPIO_PIN_8|GPIO_PIN_11;
@@ -271,10 +276,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB0 PB1 PB2 PB10
-                           PB11 PB12 PB3 PB4
-                           PB5 PB6 PB7 PB8
-                           PB9 */
+  /* Configure output pins for LCD control and data signals
+   * Using high-speed configuration for timing-critical signals
+   */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10
                           |GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_3|GPIO_PIN_4
                           |GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8
@@ -284,60 +288,63 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PB13 */
+  /* Configure PB13 pin with lower speed (used for status/debug) */
   GPIO_InitStruct.Pin = GPIO_PIN_13;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA9 */
+  /* Configure PA9 as input (ERD signal) */
   GPIO_InitStruct.Pin = GPIO_PIN_9;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;  /* No interrupt, just input */
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA10 */
+  /* Configure PA10 as interrupt input (Strobe signal) */
   GPIO_InitStruct.Pin = GPIO_PIN_10;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;  /* Interrupt on rising edge */
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA15 */
+  /* Configure additional input pins with pull-ups */
   GPIO_InitStruct.Pin = GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PD0 PD1 */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /* EXTI interrupt init*/
+  /* Configure the EXTI interrupt controller for PA10 */
   HAL_NVIC_SetPriority(EXTI4_15_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
-
 }
 
 /* USER CODE BEGIN 4 */
-
 
 /* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.
+  * @note   Currently configured to continue execution even on errors
   * @retval None
   */
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
+  
+  /* Original error handler code (disabled but preserved)
   //__disable_irq();
   //while (1)
   //{
   //}
+  */
+  
+  /* Current implementation continues execution even after errors */
   /* USER CODE END Error_Handler_Debug */
 }
 

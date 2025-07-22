@@ -95,12 +95,20 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
+<<<<<<< Updated upstream
 
   //HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
 
 
 
   HAL_Delay(200);
+=======
+  /* Initialize the LCD display
+   * This function is defined elsewhere and configures the display
+   * for proper operation with the interrupt handler
+   */
+  HAL_Delay(250);
+>>>>>>> Stashed changes
   displayInit();
 
   //set rd and cs to 1

@@ -35,9 +35,54 @@ void displayInit(){
 	}
 }
 
+<<<<<<< Updated upstream
 void oledInit(){
 
 	displayWrite(0, 0xA1); //oled
+=======
+/**
+ * @brief   Main display initialization function
+ * @details Initializes the display based on configured type and applies
+ *          common settings. Checks configuration jumpers for special modes.
+ */
+void displayInit(void) {
+    // Reset the display hardware
+    resetDisplay();
+    
+    // Keep display OFF during initialization
+    displayWrite(0, 0xAE); // Display off
+    
+    // Initialize based on the configured display type
+    switch(DISPLAY_TYPE) {
+        case SSD1309:
+        case SSD1305: 
+            oledInit(); 
+            break;
+        case LCD: 
+            lcdInit(); 
+            break;
+    }
+
+    // Clear display before turning on to prevent white flash
+    clearDisplay();
+    
+    // Check jumper settings on PD0/PD1 for display inversion mode
+    if((GPIOD->IDR & 0b11) != 0b11)
+        displayWrite(0, 0xA7); // Inverted display mode
+    else
+        displayWrite(0, 0xA6); // Normal display mode
+
+    // Turn display on only after clearing
+    displayWrite(0, 0xAF); // Display on
+
+
+    // Special test mode: if PD0 is grounded, clear display and halt
+    if((GPIOD->IDR & 1) == 0) {
+        __disable_irq();
+        clearDisplay();
+        while(1); // Infinite loop - system halt for testing
+    }
+>>>>>>> Stashed changes
 }
 
 void lcdInit(){

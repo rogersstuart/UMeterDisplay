@@ -1,6 +1,16 @@
+<<<<<<< Updated upstream
 ../Core/Src/lcd_if.c:38:6:oledInit	0	static,ignoring_inline_asm
 ../Core/Src/lcd_if.c:43:6:lcdInit	24	static,ignoring_inline_asm
 ../Core/Src/lcd_if.c:112:6:resetDisplay	0	static,ignoring_inline_asm
 ../Core/Src/lcd_if.c:185:6:clearDisplay	24	static,ignoring_inline_asm
 ../Core/Src/lcd_if.c:3:6:displayInit	16	static,ignoring_inline_asm
 ../Core/Src/lcd_if.c:226:6:displayWrite	0	static,ignoring_inline_asm
+=======
+../Core/Src/lcd_if.c:246:6:displayWrite.constprop	0	static,ignoring_inline_asm
+../Core/Src/lcd_if.c:120:6:lcdInit	24	static,ignoring_inline_asm
+../Core/Src/lcd_if.c:173:6:resetDisplay	0	static,ignoring_inline_asm
+../Core/Src/lcd_if.c:205:6:clearDisplay	24	static,ignoring_inline_asm
+../Core/Src/lcd_if.c:73:6:oledInit	8	static
+../Core/Src/lcd_if.c:29:6:displayInit	8	static,ignoring_inline_asm
+../Core/Src/lcd_if.c:246:6:displayWrite	0	static,ignoring_inline_asm
+>>>>>>> Stashed changes

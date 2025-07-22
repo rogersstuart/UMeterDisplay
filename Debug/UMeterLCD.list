@@ -723,7 +723,7 @@ Disassembly of section .text:
  8000690:	9305      	str	r3, [sp, #20]
  8000692:	9506      	str	r5, [sp, #24]
  8000694:	f001 f990 	bl	80019b8 <HAL_TIMEx_MasterConfigSynchronization>
- 8000698:	20c8      	movs	r0, #200	@ 0xc8
+ 8000698:	20fa      	movs	r0, #250	@ 0xfa
  800069a:	f000 fa2d 	bl	8000af8 <HAL_Delay>
  800069e:	f7ff fe99 	bl	80003d4 <displayInit>
  80006a2:	2101      	movs	r1, #1

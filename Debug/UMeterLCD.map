@@ -82,52 +82,6 @@ Discarded input sections
  .bss           0x00000000        0x0 ./Core/Src/stm32g0xx_it.o
  .text.sleep_some
                 0x00000000        0xc ./Core/Src/stm32g0xx_it.o
- .bss.startup_sync_needed
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .data.startup_protection_active
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .data.last_was_command
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.consecutive_data_bytes
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.erd_transition_count
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .data.last_erd_state
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .data.readback_page
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.readback_active
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.data_count
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.command_state
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.expecting_col_low
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.expecting_col_high
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.column_set_complete
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.column_address
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.current_col_high
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.current_col_low
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.current_page
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.col_val_ctr
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.ovf       0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.old_col_val
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.col_val   0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.skip_data
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.state_tracker
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
- .bss.last_command
-                0x00000000        0x1 ./Core/Src/stm32g0xx_it.o
  .text          0x00000000        0x0 ./Core/Src/syscalls.o
  .data          0x00000000        0x0 ./Core/Src/syscalls.o
  .bss           0x00000000        0x0 ./Core/Src/syscalls.o

@@ -6,9 +6,6 @@
   * 
   * @details This file handles all interrupt routines for the STM32G0xx microcontroller,
   *			 with special focus on LCD communication handling via external interrupts.
-  * 
-  * @date    July 21, 2025
-  * @author  Stuart
   ******************************************************************************
   * @attention
   *
@@ -49,44 +46,14 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 
-// Command processing control flags
+// Command processing control flag
 uint8_t skip_next = 0;           // Number of bytes to skip processing
-uint8_t last_command = 0;        // Last command received
-uint8_t state_tracker = 0;       // General state tracking
-uint8_t skip_data = 0;           // Flag to skip data processing
 
-// Column tracking
-uint8_t col_val = 0;             // Current column value
-uint8_t old_col_val = 0;         // Previous column value
-uint8_t ovf = 0;                 // Overflow flag
-uint8_t col_val_ctr = 0;         // Column value counter
+// Data handling
 uint8_t datalines = 0;           // Data lines value for output
-
-// Addressing tracking
-uint8_t current_page = 0;        // Current page address
-uint8_t current_col_low = 0;     // Low nibble of column address
-uint8_t current_col_high = 0;    // High nibble of column address
-uint8_t column_address = 0;      // Complete column address
-uint8_t column_set_complete = 0; // Flag indicating column address is fully set
-
-// Command sequence tracking
-uint8_t expecting_col_high = 0;  // Flag for expecting high column address byte
-uint8_t expecting_col_low = 0;   // Flag for expecting low column address byte
-uint8_t command_state = 0;       // Current command state
-uint8_t data_count = 0;          // Counter for consecutive data bytes
-
-// Readback control
-uint8_t readback_active = 0;     // Flag indicating readback operation in progress
-uint8_t readback_page = 0xFF;    // Page address for readback
-uint8_t last_erd_state = 1;      // Previous ERD signal state
-uint8_t erd_transition_count = 0;// Counter for ERD signal transitions
-uint8_t consecutive_data_bytes = 0; // Counter for consecutive data bytes
-uint8_t last_was_command = 1;    // Flag indicating previous byte was a command
 
 // Initialization and synchronization
 volatile uint8_t display_init_complete = 0;      // Flag indicating display initialization complete
-volatile uint8_t startup_protection_active = 1;  // Flag for startup protection
-volatile uint8_t startup_sync_needed = 0;        // Flag indicating sync needed after startup
 
 /* USER CODE END PV */
 

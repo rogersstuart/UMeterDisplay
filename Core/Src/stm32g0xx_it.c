@@ -180,8 +180,13 @@ void EXTI4_15_IRQHandler(void)
 
   /* USER CODE END EXTI4_15_IRQn 0 */
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);
+=======
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);   // Handle PA9 (ERD) interrupts
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);  // Handle PA10 (strobe)
+>>>>>>> Stashed changes
 =======
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);   // Handle PA9 (ERD) interrupts
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);  // Handle PA10 (strobe)
@@ -656,6 +661,9 @@ void EXTI4_15_IRQHandler(void)
       }
       last_command = in_data;
   }
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
   /* USER CODE END EXTI4_15_IRQn 1 */

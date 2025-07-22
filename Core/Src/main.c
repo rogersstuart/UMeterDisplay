@@ -108,6 +108,9 @@ int main(void)
    * for proper operation with the interrupt handler
    */
   HAL_Delay(250);
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
   displayInit();
 

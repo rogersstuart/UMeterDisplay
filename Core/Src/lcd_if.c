@@ -97,20 +97,25 @@ void oledInit(void) {
     displayWrite(0, 0xA4); // Resume display with RAM content
     displayWrite(0, 0xA6); // Normal display mode (not inverted)
     
-    // CRITICAL: Set horizontal addressing mode explicitly
-    displayWrite(0, 0x20); // Memory addressing mode command
-    displayWrite(0, 0x00); // Horizontal addressing mode (auto-increment column)
-    
-    // Define the column address range to account for the offset
-    // Note: SSD1309 has 132 columns but we use 128 centered by starting at column 2
-    displayWrite(0, 0x21); // Column address range command
-    displayWrite(0, 0x02); // Start from column 2 (to center 128 pixels in 132 columns)
-    displayWrite(0, 0x81); // End at column 129 (2+127)
-    
-    // Define the page address range (8 pages for 64-pixel height)
-    displayWrite(0, 0x22); // Page address range command  
-    displayWrite(0, 0x00); // Start page 0
-    displayWrite(0, 0x07); // End page 7 (8 pages total, 0-7)
+    // SSD1309-specific memory addressing configuration
+    if(DISPLAY_TYPE == SSD1309) {
+        // CRITICAL: Set horizontal addressing mode explicitly
+        displayWrite(0, 0x20); // Memory addressing mode command
+        displayWrite(0, 0x00); // Horizontal addressing mode (auto-increment column)
+        
+        // Define the column address range to account for the offset
+        // Note: SSD1309 has 132 columns but we use 128 centered by starting at column 2
+        displayWrite(0, 0x21); // Column address range command
+        displayWrite(0, 0x02); // Start from column 2 (to center 128 pixels in 132 columns)
+        displayWrite(0, 0x81); // End at column 129 (2+127)
+        
+        // Define the page address range (8 pages for 64-pixel height)
+        displayWrite(0, 0x22); // Page address range command  
+        displayWrite(0, 0x00); // Start page 0
+        displayWrite(0, 0x07); // End page 7 (8 pages total, 0-7)
+    }
+    // SSD1305 uses page addressing mode by default and doesn't support
+    // memory addressing mode commands
 }
 
 /**
